@@ -1,17 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
+
 public class PoolManager
 {
     #region Pool
+    // å®šä¹‰Poolç±»ï¼Œç”¨äºç®¡ç†å¯¹è±¡æ± 
     class Pool
     {
-        //¿øº» ¿ÀºêÁ§Æ®
+        // åŸå§‹çš„GameObjectå¼•ç”¨
         public GameObject Original { get; private set; }
-        //¿ÀºêÁ§Æ® Ç® ¿ªÇÒÀÇ Root Object
+ 
+        // å¯¹è±¡æ± çš„æ ¹èŠ‚ç‚¹
         public Transform Root { get; set; }
-        //Poolable Object¸¦ ÀúÀåÇÏ´Â poolStack. stackÀÌ ¾Æ´Ï¶ó queue¸¦ »ç¿ëÇØµµ µÈ´Ù.
+
+        // å­˜å‚¨ç©ºé—²å¯¹è±¡çš„æ ˆ
         Stack<Poolable> _poolStack = new Stack<Poolable>();
-        //original Object¸¦ PoolingÇÒ PoolÀÌ Á¸ÀçÇÏÁö ¾ÊÀ» °æ¿ì PoolÀ» »ı¼ºÇÑ´Ù.
+ 
+        // åˆå§‹åŒ–å¯¹è±¡æ± 
         public void Init(GameObject original, int count = 5)
         {
             Original = original;
@@ -20,42 +25,43 @@ public class PoolManager
             for (int i = 0; i < count; i++)
                 Push(Create());
         }
-        //Pool¿¡ ÀúÀåµÇ´Â Poolable Object¸¦ »ı¼ºÇÑ´Ù.
+
+        // åˆ›å»ºä¸€ä¸ªæ–°çš„å¯¹è±¡
         Poolable Create()
         {
             GameObject go = Object.Instantiate<GameObject>(Original);
             go.name = Original.name;
             return go.GetOrAddComponent<Poolable>();
         }
-        //»ı¼ºµÈ Poolable Object¸¦ pool¿¡ ¹èÄ¡ÇÑ´Ù. 
+
+        // å°†å¯¹è±¡æ”¾å›å¯¹è±¡æ± 
         public void Push(Poolable poolable)
         {
-            //object°¡ Á¸ÀçÇÏÁö ¾ÊÀ» ½Ã ¹èÄ¡ÇÏÁö ¾Ê´Â´Ù.
             if (poolable == null)
                 return;
-            //pool¿ªÇÒÀ» ÇÏ´Â ObjectÀÇ ÀÚ½Ä¿ÀºêÁ§Æ®·Î ¹èÄ¡ÇÏ°í, ºñÈ°¼ºÈ­ÇÏ¿© »ç¿ëµÇÁö ¾ÊÀ½À» È®ÀÎ½ÃÅ²´Ù.
+
             poolable.transform.parent = Root;
             poolable.gameObject.SetActive(false);
             poolable.isUsing = false;
-            //poolStack¿¡ ÀúÀå
+
             _poolStack.Push(poolable);
         }
-        //pool¿¡ ¹èÄ¡µÈ ¿ÀºêÁ§Æ®¸¦ ²¨³»¿Â´Ù.
+
+        // ä»å¯¹è±¡æ± ä¸­å–å‡ºä¸€ä¸ªå¯¹è±¡
         public Poolable Pop(Transform parent)
         {
             Poolable poolable = null;
-            //pool¿¡ ³²¾ÆÀÖ´Â Poolable Object°¡ ÀÖ´ÂÁö È®ÀÎÇÑ´Ù. ¾øÀ» °æ¿ì »õ·Î »ı¼º.
+
             while (_poolStack.Count > 0)
             {
                 poolable = _poolStack.Pop();
                 if (!poolable.gameObject.activeSelf)
                     break;
             }
-            //pool¿¡ ³²¾ÆÀÖ´Â Object°¡ ¾ø´Ù¸é ¿øº»À» ÅëÇØ »õ·Î »ı¼ºÇÏ¿© ²¨³»¿Â´Ù.
+
             if (poolable == null || poolable.gameObject.activeSelf)
                 poolable = Create();
             poolable.gameObject.SetActive(true);
-            //ºÎ¸ğ ¿ÀºêÁ§Æ®·Î ¹èÄ¡µÇÁö ¾ÊÀ» °æ¿ì Scene À§Ä¡¿¡ ¹èÄ¡µÈ´Ù.
             if (parent == null)
                 poolable.transform.parent = Managers.Scene.CurrentScene.transform;
 
@@ -65,58 +71,62 @@ public class PoolManager
         }
     }
     #endregion
-    //ÀüÃ¼ PoolÀ» ´ã´çÇÏ´Â µñ¼Å³Ê¸®. °¢ Pool¸¶´Ù ¹èÄ¡µÇ´Â Poolable Object°¡ ´Ù¸£±â ¶§¹®¿¡ °¢°¢ÀÇ ¿øº»¸¶´Ù PoolÀ» µû·Î »ı¼ºÇÏ°í °ü¸®ÇØÁà¾ßÇÑ´Ù.
+    
+    // å­˜å‚¨æ‰€æœ‰å¯¹è±¡æ± çš„å­—å…¸
     Dictionary<string, Pool> _pool = new Dictionary<string, Pool>();
     Transform _root;
+
+    // åˆå§‹åŒ–å¯¹è±¡æ± ç®¡ç†å™¨
     public void Init()
     {
-        //ÀüÃ¼ Pool Object¸¦ ºÎ¸ğ ¿ÀºêÁ§Æ® ¡°@Pool_Root¡±¿¡ ¹èÄ¡ÇÏ¿© °ü¸®ÇÑ´Ù.
         if (_root == null)
         {
             _root = new GameObject { name = "@Pool_Root" }.transform;
             Object.DontDestroyOnLoad(_root);
         }
     }
-    //Pool»ç¿ëÀ» ´Ù ÇÑ Object¸¦ ÇØ´ç ¿øº»ÀÌ Á¸ÀçÇÏ´Â Pool¿¡ ´Ù½Ã ¹èÄ¡ÇÑ´Ù.
+   
+    // å°†å¯¹è±¡æ”¾å›å¯¹è±¡æ± ï¼Œæˆ–è€…åœ¨ä¸€å®šæ—¶é—´åé”€æ¯
     public void Push(Poolable poolable, float time)
     {
-        //ÇØ´ç ¿øº»À» ´ã´çÇÏ´Â PoolÀÌ Á¸ÀçÇÏ´ÂÁö È®ÀÎ. Á¸ÀçÇÏÁö ¾ÊÀ» °æ¿ì Poolable 	Object°¡ ¾Æ´Ï¶ó´Â ÀÇ¹ÌÀÌ¹Ç·Î ÇØ´ç ¿ÀºêÁ§Æ®¸¦ ÆÄ±«ÇÑ´Ù.
         string name = poolable.gameObject.name;
         if (!_pool.ContainsKey(name))
         {
             GameObject.Destroy(poolable.gameObject, time);
             return;
         }
-        //PoolÀÌ Á¸ÀçÇÒ °æ¿ì ÇØ´ç pool¿¡ ÀúÀåÇÑ´Ù.
+        
         _pool[name].Push(poolable);
     }
-    //ÇØ´ç ¿øº»¿¡ ÇØ´çÇÏ´Â ¿ÀºêÁ§Æ®¸¦ pool¿¡¼­ ²¨³½´Ù.
+   
+    // ä»å¯¹è±¡æ± ä¸­è·å–ä¸€ä¸ªå¯¹è±¡
     public Poolable Pop(GameObject original, Transform parent = null)
     {
-        //¿øº»¿¡ ÇØ´çµÇ´Â poolÀÌ Á¸ÀçÇÏÁö ¾ÊÀ» °æ¿ì poolÀ» »ı¼º
         if (!_pool.ContainsKey(original.name))
             CreatePool(original);
-        //ÇØ´ç poolÀÇ Object¸¦ ²¨³½´Ù.
+        
         return _pool[original.name].Pop(parent);
     }
-    //¿øº»À» ¹èÄ¡ÇÏ´Â poolÀ» »ı¼ºÇÑ´Ù.
+
+    // åˆ›å»ºä¸€ä¸ªæ–°çš„å¯¹è±¡æ± 
     public void CreatePool(GameObject original, int count = 5)
     {
-        //pool °´Ã¼¸¦ »ı¼ºÇÏ°í ÇØ´ç ¿øº»°ú ÁöÁ¤ °³¼ö¿¡ ¸ÂÃç poolÀ» ÃÊ±âÈ­ÇÑ´Ù.
         Pool pool = new Pool();
         pool.Init(original, count);
         pool.Root.parent = _root;
-        //ÇØ´ç Ç®À» poolÀ» _pool µñ¼Å³Ê¸®¿¡ Ãß°¡
+        
         _pool.Add(original.name, pool);
     }
-    //ÇØ´ç Ç®ÀÇ ¿øº»À» °¡Á®¿Â´Ù.
+    
+    // è·å–å¯¹è±¡æ± ä¸­çš„åŸå§‹å¯¹è±¡
     public GameObject GetOriginal(string name)
     {
         if (!_pool.ContainsKey(name))
             return null;
         return _pool[name].Original;
     }
-    //¸ğµç poolÀ» Á¦°ÅÇÏ¿© ÃÊ±âÈ­ÇÑ´Ù.
+
+    // æ¸…é™¤æ‰€æœ‰å¯¹è±¡æ± 
     public void Clear()
     {
         foreach (Transform child in _root)
